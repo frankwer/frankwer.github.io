@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue</title>
+    <!--<script src="https://unpkg.com/vue/dist/vue.min.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
+
+     <script src="services/services.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <style>
+
+    </style>
+  </head>
+  <body>
+  <div id="app">
+   <router-link to="/rapport">Rapport</router-link>
+      <router-link to="/rapport2">Rapport 2</router-link>
+
+     <div>
+        <router-view></router-view>
+      </div>
+
+  </div>
+
+
+  <div id="rapport">
+  <!--
+  <div>Antall registrerte Polestar 2: {{antallitems}} {{vinnummer[0]}}</div>
+  
+  <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart>
+-->
+  </div>
+
+  </body>
+
+  <script type="text/javascript">
+  
+
+const Bar = {
+  template: `<div>bar</div>`
+};
+
+
+const router = new VueRouter({
+  routes: [
+    {
+      path: "/rapport",
+      component: rapportapp
+    },
+    {
+      path: "/rapport2",
+      component: Bar
+    }
+  ]
+});
+
+const app = new Vue({
+  router,
+  el: "#app"
+});
+
+
+
+
+function randomHex(length) {
+    var random_string = '';
+    if(!length){
+        length = 1;
+    }
+    for(var i=0; i<length; i+=1){
+        random_string += Math.floor(Math.random() * 15).toString(16);
+    }
+    return random_string;
+}
+
+function guid() {
+    return randomHex(8);
+}
+
+
+  async function getData(url) {
+    return await axios
+        .get(`${url}`, { headers: {
+          'Access-Control-Allow-Origin': '*'
+        } })
+}
+        
+      const countOccurrences = arr => arr.reduce((prev, curr) => (prev[curr] = ++prev[curr] || 1, prev), {})
+
+      function analyzeData(tempdata) {
+
+          var occurences = countOccurrences(tempdata)
+
+          var templabels = []
+          var tempdata = []
+
+          for (const [key, value] of Object.entries(occurences)) {
+
+            templabels.push(key)
+            tempdata.push(value)
+          }
+
+          return {'labels': templabels, 'data': tempdata}
+      }
+
+
+Vue.component('barchart', {
+props: ['chartdata', 'data', 'labels', 'options', 'type', 'title', 'initdata'],
+data: function() {
+    return {
+        mychart: null,
+        id: guid()
+    }
+},
+methods: {
+    initchart: function() {
+        var ctx = document.getElementById(this.id).getContext('2d');
+        this.mychart = new Chart(ctx, {
+                    type: this.type ? this.type : 'bar',
+                    data: {
+                        labels: this.chartdata.labels ? this.chartdata.labels : [],
+                        datasets: this.chartdata.datasets ? this.chartdata.datasets : []
+                        },
+                    options: this.options
+                })
+          //this.mychart.update()
+
+        }
+       
+},
+watch: {
+    initdata: {
+      handler(val, oldval){
+
+        if (val) {
+          console.log("INITDATA")
+          this.initchart()
+        }
+        else{
+          this.mychart.update()
+        }
+
+      }
+    },
+    chartdata: {
+        immediate: false,
+        deep: false,
+        handler(val, oldval) {
+
+            if (!this.mychart)
+            {
+                this.initchart()
+                //this.mychart.update();
+            }
+            else if (this.mychart && val)
+            {
+                //this.mychart.update();
+            }
+
+        }
+    }
+},
+mounted() {
+
+    //this.initchart()
+
+},
+template: `<div><canvas :id="id"></canvas></div>`
+
+})
+
+
+
+
+var rapportapp = new Vue({
+      el: '#rapport',
+      //delimiters: ['[[',']]'],
+      data: {
+        antallsider: 1,
+        antallitems: 0,
+        initdata: false,
+        chartData: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Antall biler',
+              data: [],
+              fill: true,
+              borderColor: '#000',
+              backgroundColor: '#2554FF',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            //cutoutPercentage: 80
+        },
+        registrert: [],
+        vinnummer: []
+      },
+      methods: {
+        processData: function(carbrand)
+        {
+          var antallsider = 15
+          var antallitems = 0
+
+          var numsitesloaded = 15
+          
+          for (var i=0; i < antallsider; i++)
+          {
+            this.loadData("polestar 2", i+1)
+          }
+     
+
+          console.log("tempregistrert")
+
+          //this.processData2(this.registrert)
+          
+        },
+        processData2: function(data)
+        {
+          var adata = analyzeData(data)
+          this.chartData.labels = adata.labels
+          this.chartData.datasets[0].data = adata.data
+
+          this.initdata = true
+
+        },
+        loadData: function(carbrand, index) {
+            let urlBase = "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query="
+
+            var result = getJson(`${urlBase}${carbrand}&page=${index}`)
+
+            result.then(response => {
+
+              this.antallitems = response.data.posts
+
+              return response.data
+
+            }).then(result => {
+
+                Object.entries(result.entries).forEach(item => {
+                  //this.registrert.push(item[1].tekn_reg_aar.slice(0,6))
+                  this.registrert.push(item[1].tekn_reg_aar)
+                  this.vinnummer.push(item[1].tekn_unr)
+                });
+
+                if (this.registrert.length == this.antallitems)
+                {
+                    this.vinnummer.sort()
+                    this.processData2(this.registrert)
+                }
+               
+            }).catch(function (error) {
+                console.log(error);
+            })
+
+        } 
+      },
+      watch: {
+        registrert: {
+            immediate: false,
+            deep: true,
+            handler(val, oldval) {
+                
+
+                //this.processData2(val)      
+          }
+        }
+      },
+          computed: {
+            chartStyles() {
+                return {
+                    height: '200px',
+                    position: 'relative'
+                    }
+            }
+          },
+      mounted() {
+
+            //this.chartData = this.loadData("get_antall_arbeidsordrer_month", "Antall arbeidsordrer pr måned")
+             
+            //this.loadData("polestar 2", 1)
+            //this.loadData("polestar 2", 2)
+            this.processData("polestar 2")
+           
+
+      },
+      template: `
+      <div id="rapport">
+      <div class="row">
+      <div class="col-sm">
+      <ul class="list-group">
+      <li class="list-group-item">Antall registrerte Polestar 2: <b>{{antallitems}}</b></li>
+      <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}}</b></li>
+      </ul>
+      
+      <div class="col-sm"></div></div>
+      </div>
+      <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart></div>`
+
+    });
+
+     function getJson(url) {
+        return axios
+        .get(`${url}`)
+     }
+
+    Vue.config.devtools = true;
+  
+  </script>
+  </html>
