@@ -83,6 +83,8 @@ function guid() {
     return randomHex(8);
 }
 
+const apiDoc = "https://hotell.difi.no/?dataset=vegvesen/kjoretoy"
+
 const apiUrl="https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=polestar 2"
 
 const getCars = async function(pageNo = 1) {
@@ -108,8 +110,6 @@ function convertDate(str)
   var year = str.slice(0,4)
   var month = str.slice(4,6)
   var day = str.slice(6,8)
-
-  console.log(year + " : " + month + " : " + day)
 
   return `${day}.${month}`
 }
@@ -175,7 +175,7 @@ watch: {
         deep: false,
         handler(val, oldval) {
 
-          console.log(val)
+          console.log("CHARTDATA")
 
             if (!this.mychart)
             {
@@ -214,7 +214,7 @@ var rapportapp = new Vue({
             {
               label: 'Antall biler',
               data: [],
-              fill: true,
+              fill: false,
               borderColor: '#000',
               backgroundColor: '#2554FF',
               borderWidth: 1
@@ -223,15 +223,17 @@ var rapportapp = new Vue({
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            aspectRatio: 0.667
             //cutoutPercentage: 80
         },
         registrert: [],
         vinnummer: [],
-        kjoretoyList: null
+        kjoretoyList: null,
+        documentHeight: null
       },
       methods: {
-        processData2: function(data)
+        processData: function(data)
         {
           var adata = analyzeData(data)
           this.chartData.labels = adata.labels
@@ -245,6 +247,7 @@ var rapportapp = new Vue({
         chartData: function(val, oldval)
         {
           console.log("CHARTDATA")
+          console.log(val)
         },
         kjoretoyList: {
           immediate: false,
@@ -259,7 +262,7 @@ var rapportapp = new Vue({
             });
 
             this.vinnummer.sort()
-            this.processData2(this.registrert)
+            this.processData(this.registrert)
 
             console.log("KJØRETØYLIST")
           }
@@ -274,15 +277,18 @@ var rapportapp = new Vue({
           }
         }
       },
-          computed: {
-            chartStyles() {
-                return {
-                    height: '200px',
-                    position: 'relative'
-                    }
-            }
-          },
+      computed: {
+        chartStyles() {
+            return {
+                //height: (this.documentHeight / 2) + 'px',
+                height: '400px',
+                position: 'relative'
+                }
+        }
+      },
       async mounted() {
+             
+             this.documentHeight = document.documentElement.scrollHeight
              this.kjoretoyList=await getEntireCarList();
       },
       template: `
@@ -294,10 +300,16 @@ var rapportapp = new Vue({
       <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}}</b></li>
       </ul>
       </div>
-      <div class="col-sm"></div>
+      <div class="col-sm">
+      <ul class="list-group">
+      <li class="list-group-item">&nbsp;</li>
+      <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a></li>
+      </ul>
       </div>
-      <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart>
 
+      </div>
+      <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned"></barchart>
+      <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned" type="line"></barchart>
       </div>`
 
     });
