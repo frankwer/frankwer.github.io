@@ -3,24 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <title>Polestar 2 Difi stats</title>
-    <!--<script src="https://unpkg.com/vue/dist/vue.min.js"></script>-->
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue/dist/vue.min.js"></script>
+    <!--script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
     <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!--<script src="https://unpkg.com/axios/dist/axios.min.js"></script>-->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
-    <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
-
-     <script src="services/services.js"></script>
+    <!--<script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>-->
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
-    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <link rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
     <style>
 
     </style>
   </head>
   <body>
+  <!--
   <div id="app">
    <router-link to="/rapport">Rapport</router-link>
       <router-link to="/rapport2">Rapport 2</router-link>
@@ -30,7 +29,7 @@
       </div>
 
   </div>
-
+-->
 
   <div id="rapport">
   <!--
@@ -44,7 +43,7 @@
 
   <script type="text/javascript">
   
-
+/*
 const Bar = {
   template: `<div>bar</div>`
 };
@@ -67,9 +66,7 @@ const app = new Vue({
   router,
   el: "#app"
 });
-
-
-
+*/
 
 function randomHex(length) {
     var random_string = '';
@@ -86,31 +83,45 @@ function guid() {
     return randomHex(8);
 }
 
+const apiUrl="https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=polestar 2"
 
-  async function getData(url) {
-    return await axios
-        .get(`${url}`, { headers: {
-          'Access-Control-Allow-Origin': '*'
-        } })
+const getCars = async function(pageNo = 1) {
+  let actualUrl=apiUrl + `&page=${pageNo}`;
+  var apiResults=await fetch(actualUrl)
+  .then(resp=>{
+    return resp.json();
+  });
+  return apiResults;
 }
-        
-      const countOccurrences = arr => arr.reduce((prev, curr) => (prev[curr] = ++prev[curr] || 1, prev), {})
 
-      function analyzeData(tempdata) {
+const getEntireCarList = async function(index = 1) {
+  const results = await getCars(index);
+  if (results.entries.length>0) {
+    return results.entries.concat(await getEntireCarList(index+1));
+  } else {
+    return results.entries;
+  }
+};
 
-          var occurences = countOccurrences(tempdata)
 
-          var templabels = []
-          var tempdata = []
+const countOccurrences = arr => arr.reduce((prev, curr) => (prev[curr] = ++prev[curr] || 1, prev), {})
 
-          for (const [key, value] of Object.entries(occurences)) {
+function analyzeData(tempdata) {
 
-            templabels.push(key)
-            tempdata.push(value)
-          }
+    var occurences = countOccurrences(tempdata)
 
-          return {'labels': templabels, 'data': tempdata}
-      }
+    var templabels = []
+    var tempdata = []
+
+    for (const [key, value] of Object.entries(occurences)) {
+
+      templabels.push(key)
+      tempdata.push(value)
+    }
+
+    return {'labels': templabels, 'data': tempdata}
+}
+
 
 
 Vue.component('barchart', {
@@ -132,9 +143,7 @@ methods: {
                         },
                     options: this.options
                 })
-          //this.mychart.update()
-
-        }
+         }
        
 },
 watch: {
@@ -171,8 +180,6 @@ watch: {
 },
 mounted() {
 
-    //this.initchart()
-
 },
 template: `<div><canvas :id="id"></canvas></div>`
 
@@ -185,6 +192,7 @@ var rapportapp = new Vue({
       el: '#rapport',
       //delimiters: ['[[',']]'],
       data: {
+        urlbase: "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=",
         antallsider: 1,
         antallitems: 0,
         initdata: false,
@@ -207,27 +215,10 @@ var rapportapp = new Vue({
             //cutoutPercentage: 80
         },
         registrert: [],
-        vinnummer: []
+        vinnummer: [],
+        kjoretoyList: null
       },
       methods: {
-        processData: function(carbrand)
-        {
-          var antallsider = 15
-          var antallitems = 0
-
-          var numsitesloaded = 15
-          
-          for (var i=0; i < antallsider; i++)
-          {
-            this.loadData("polestar 2", i+1)
-          }
-     
-
-          console.log("tempregistrert")
-
-          //this.processData2(this.registrert)
-          
-        },
         processData2: function(data)
         {
           var adata = analyzeData(data)
@@ -236,39 +227,27 @@ var rapportapp = new Vue({
 
           this.initdata = true
 
-        },
-        loadData: function(carbrand, index) {
-            let urlBase = "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query="
-
-            var result = getJson(`${urlBase}${carbrand}&page=${index}`)
-
-            result.then(response => {
-
-              this.antallitems = response.data.posts
-
-              return response.data
-
-            }).then(result => {
-
-                Object.entries(result.entries).forEach(item => {
+        }
+      },
+      watch: {
+        kjoretoyList: {
+          immediate: false,
+          deep: false,
+          handler(val, oldval)
+          {
+            this.antallitems = val.length
+            Object.entries(val).forEach(item => {
                   //this.registrert.push(item[1].tekn_reg_aar.slice(0,6))
                   this.registrert.push(item[1].tekn_reg_aar)
                   this.vinnummer.push(item[1].tekn_unr)
-                });
+            });
 
-                if (this.registrert.length == this.antallitems)
-                {
-                    this.vinnummer.sort()
-                    this.processData2(this.registrert)
-                }
-               
-            }).catch(function (error) {
-                console.log(error);
-            })
+            this.vinnummer.sort()
+            this.processData2(this.registrert)
 
-        } 
-      },
-      watch: {
+            console.log("KJØRETØYLIST")
+          }
+        },
         registrert: {
             immediate: false,
             deep: true,
@@ -287,35 +266,26 @@ var rapportapp = new Vue({
                     }
             }
           },
-      mounted() {
-
-            //this.chartData = this.loadData("get_antall_arbeidsordrer_month", "Antall arbeidsordrer pr måned")
-             
-            //this.loadData("polestar 2", 1)
-            //this.loadData("polestar 2", 2)
-            this.processData("polestar 2")
-           
-
+      async mounted() {
+             this.kjoretoyList=await getEntireCarList();
       },
       template: `
-      <div id="rapport">
+      <div class="container-fluid">
       <div class="row">
       <div class="col-sm">
       <ul class="list-group">
       <li class="list-group-item">Antall registrerte Polestar 2: <b>{{antallitems}}</b></li>
       <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}}</b></li>
       </ul>
-      
-      <div class="col-sm"></div></div>
       </div>
-      <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart></div>`
+      <div class="col-sm"></div>
+      </div>
+      <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart>
+      </div>`
 
     });
 
-     function getJson(url) {
-        return axios
-        .get(`${url}`)
-     }
+
 
     Vue.config.devtools = true;
   
