@@ -161,7 +161,6 @@ watch: {
       handler(val, oldval){
 
         if (val) {
-          console.log("INITDATA")
           this.initchart()
         }
         else{
@@ -174,8 +173,6 @@ watch: {
         immediate: false,
         deep: false,
         handler(val, oldval) {
-
-          console.log("CHARTDATA")
 
             if (!this.mychart)
             {
@@ -208,11 +205,25 @@ var rapportapp = new Vue({
         antallsider: 1,
         antallitems: 0,
         initdata: false,
+        initdata2: false,
         chartData: {
           labels: [],
           datasets: [
             {
               label: 'Antall biler',
+              data: [],
+              fill: false,
+              borderColor: '#000',
+              backgroundColor: '#2554FF',
+              borderWidth: 1
+            }
+          ]
+        },
+        chartData2: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Fordeling av farger',
               data: [],
               fill: false,
               borderColor: '#000',
@@ -229,6 +240,16 @@ var rapportapp = new Vue({
         },
         registrert: [],
         vinnummer: [],
+        farge: [],
+        fargedata: null,
+        fargekoder: {
+          "01": {farge:"Snow", webcol: "#f5f5f5"}, //	Hvit (også antikkhvit, offwhite)
+          "03": {farge:"Midnight", webcol: "#183a50" },  //  Blå
+          "05": {farge: "Thunder", webcol: "#606163"},  //  Grå
+          "06": {farge: "Void", webcol: "#000"}, //  Svart (også blåsvart, grafitt mørk, gråsort, koksgrå mørk, koksgrå mørk metallic)
+          "98": {farge: "Magnesium", webcol: ""}, // Magnesium?
+          "99": {farge: "Moon", webcol: ""} // Moon?
+        },
         kjoretoyList: null,
         documentHeight: null
       },
@@ -241,13 +262,31 @@ var rapportapp = new Vue({
 
           this.initdata = true
 
+        },
+        processData2: function(coldata)
+        {
+           var labels = []
+           var data = []
+           var color = []
+
+           for (const [key, value] of Object.entries(coldata)) {
+            
+            labels.push(this.fargekoder[key].farge)
+            data.push(Number((value / this.antallitems) * 100).toFixed(2))
+            color.push(this.fargekoder[key].webcol)
+          }
+
+            this.chartData2.labels = labels
+            this.chartData2.datasets[0].data = data
+            this.chartData2.datasets[0].backgroundColor = color
+            this.initdata2 = true
+
         }
       },
       watch: {
         chartData: function(val, oldval)
         {
-          console.log("CHARTDATA")
-          console.log(val)
+
         },
         kjoretoyList: {
           immediate: false,
@@ -259,12 +298,21 @@ var rapportapp = new Vue({
                   //this.registrert.push(item[1].tekn_reg_aar.slice(0,6))
                   this.registrert.push(item[1].tekn_reg_aar)
                   this.vinnummer.push(item[1].tekn_unr)
+                  this.farge.push(item[1].tekn_farge)
             });
 
             this.vinnummer.sort()
             this.processData(this.registrert)
+            this.fargedata = countOccurrences(this.farge)
+            //this.processData2(this.fargedata)
+          }
+        },
+        fargedata: {
+          immediate: false,
+          deep: false,
+          handler(val, oldval) {
 
-            console.log("KJØRETØYLIST")
+            this.processData2(val)
           }
         },
         registrert: {
@@ -303,13 +351,24 @@ var rapportapp = new Vue({
       <div class="col-sm">
       <ul class="list-group">
       <li class="list-group-item">&nbsp;</li>
-      <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a></li>
+      <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a> ( <a href="https://data.norge.no/datasets/a8533876-cca7-4417-90be-b368f7d9542c" target="_blank">Kjøretøyopplysninger</a> )</li>
       </ul>
       </div>
-
       </div>
+
+
+      
       <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned"></barchart>
       <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned" type="line"></barchart>
+            <div class="row">
+      <div class="col-sm">
+      Fordeling av farger: 
+      <template v-for="(item, index) in fargedata">
+          {{fargekoder[index].farge}} : <b>{{item}}</b>
+      </template>
+      </div>
+      </div>
+      <barchart :chartdata="chartData2" :options="options" :initdata="initdata2" title="Fordeling av farger" type="doughnut"></barchart>
       </div>`
 
     });
