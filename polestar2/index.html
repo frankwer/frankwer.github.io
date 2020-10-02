@@ -245,6 +245,8 @@ var rapportapp = new Vue({
         registrert: [],
         vinnummer: [],
         farge: [],
+        registrert_status: [],
+        registrert_status_data: null,
         fargedata: null,
         fargekoder: {
           "01": {farge: "Snow", webcol: "#f5f5f5"}, //	Hvit (også antikkhvit, offwhite)
@@ -303,11 +305,14 @@ var rapportapp = new Vue({
                   this.registrert.push(item[1].tekn_reg_aar)
                   this.vinnummer.push(item[1].tekn_unr)
                   this.farge.push(item[1].tekn_farge)
+
+                  this.registrert_status.push(item[1].tekn_reg_status)
             });
 
             this.vinnummer.sort()
             this.processData(this.registrert)
             this.fargedata = countOccurrences(this.farge)
+            this.registrert_status_data = countOccurrences(this.registrert_status)
             //this.processData2(this.fargedata)
           }
         },
@@ -354,7 +359,7 @@ var rapportapp = new Vue({
       </div>
       <div class="col-sm">
       <ul class="list-group">
-      <li class="list-group-item">&nbsp;</li>
+      <li class="list-group-item">Registreringstatus: <b>{{this.registrert_status_data}}</b></li>
       <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a> ( <a href="https://data.norge.no/datasets/a8533876-cca7-4417-90be-b368f7d9542c" target="_blank">Kjøretøyopplysninger</a> )</li>
       </ul>
       </div>
