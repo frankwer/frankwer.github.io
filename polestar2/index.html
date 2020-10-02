@@ -89,7 +89,11 @@ const apiUrl="https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=polestar 2
 
 const getCars = async function(pageNo = 1) {
   let actualUrl=apiUrl + `&page=${pageNo}`;
-  var apiResults=await fetch(actualUrl)
+  var apiResults=await fetch(actualUrl,/* {
+    credentials: 'include',
+    headers:{
+    'Access-Control-Allow-Origin':'*'
+    }}*/)
   .then(resp=>{
     return resp.json();
   });
@@ -243,9 +247,9 @@ var rapportapp = new Vue({
         farge: [],
         fargedata: null,
         fargekoder: {
-          "01": {farge:"Snow", webcol: "#f5f5f5"}, //	Hvit (også antikkhvit, offwhite)
-          "03": {farge:"Midnight", webcol: "#183a50" },  //  Blå
-          "05": {farge: "Thunder", webcol: "#606163"},  //  Grå
+          "01": {farge: "Snow", webcol: "#f5f5f5"}, //	Hvit (også antikkhvit, offwhite)
+          "03": {farge: "Midnight", webcol: "#183a50" },  //  Blå
+          "05": {farge: "Thunder / Magnesium / Moon", webcol: "#606163"},  //  Grå
           "06": {farge: "Void", webcol: "#000"}, //  Svart (også blåsvart, grafitt mørk, gråsort, koksgrå mørk, koksgrå mørk metallic)
           "98": {farge: "Magnesium", webcol: ""}, // Magnesium?
           "99": {farge: "Moon", webcol: ""} // Moon?
@@ -362,10 +366,14 @@ var rapportapp = new Vue({
       <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned" type="line"></barchart>
             <div class="row">
       <div class="col-sm">
-      Fordeling av farger: 
+      <h4><span class="badge badge-secondary">Fordeling av farger:</span></h4>
+      <div class="alert alert-secondary" role="alert">
+      <ul class="list-group list-group-horizontal">
       <template v-for="(item, index) in fargedata">
-          {{fargekoder[index].farge}} : <b>{{item}}</b>
+          <li class="list-group-item">{{fargekoder[index].farge}}:  <b>{{item}} biler</b></li> 
       </template>
+      </ul>
+      </div>
       </div>
       </div>
       <barchart :chartdata="chartData2" :options="options" :initdata="initdata2" title="Fordeling av farger" type="doughnut"></barchart>
