@@ -3,70 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <title>Polestar 2 Difi stats</title>
-    <script src="https://unpkg.com/vue/dist/vue.min.js"></script>
-    <!--<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
-    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
-    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+    <!--<script src="https://unpkg.com/vue/dist/vue.min.js"></script>-->
+    <script src="js/vue.js"></script>
+    <script src="js/vue-router.js"></script>
+    <script src="js/bootstrap-vue.min.js"></script>
     <!--<script src="https://unpkg.com/axios/dist/axios.min.js"></script>-->
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="js/chart.min.js"></script>
     <!--<script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>-->
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/bootstrap-vue.min.css" />
     <style>
 
     </style>
   </head>
   <body>
-  <!--
+
   <div id="app">
-   <router-link to="/rapport">Rapport</router-link>
-      <router-link to="/rapport2">Rapport 2</router-link>
+    <div id="rapport"></div>
+<!--
+  <b-breadcrumb>
+ <b-breadcrumb-item><router-link to="/">Graf</router-link></b-breadcrumb-item>
+ <b-breadcrumb-item active><router-link to="/rapport2">Liste</router-link></b-breadcrumb-item>
+  <b-breadcrumb-item active><router-link to="/bilde">Bilde</router-link></b-breadcrumb-item>
+ </b-breadcrumb>
 
      <div>
+     <keep-alive>
         <router-view></router-view>
+     </keep-alive>
       </div>
-
-  </div>
--->
-
-  <div id="rapport">
-  <!--
-  <div>Antall registrerte Polestar 2: {{antallitems}} {{vinnummer[0]}}</div>
-  
-  <barchart :chartdata="chartData" :options="options" :styles="chartStyles" :initdata="initdata" title="Antall biler per måned"></barchart>
 -->
   </div>
 
   </body>
 
-  <script type="text/javascript">
-  
-/*
-const Bar = {
-  template: `<div>bar</div>`
-};
-
-
-const router = new VueRouter({
-  routes: [
-    {
-      path: "/rapport",
-      component: rapportapp
-    },
-    {
-      path: "/rapport2",
-      component: Bar
-    }
-  ]
-});
-
-const app = new Vue({
-  router,
-  el: "#app"
-});
-*/
+<script type="text/javascript">
 
 function randomHex(length) {
     var random_string = '';
@@ -82,6 +55,8 @@ function randomHex(length) {
 function guid() {
     return randomHex(8);
 }
+
+// https://dataut.vegvesen.no/dataset/activity/kjoretoyopplysninger
 
 const apiDoc = "https://hotell.difi.no/?dataset=vegvesen/kjoretoy"
 
@@ -100,14 +75,45 @@ const getCars = async function(pageNo = 1) {
   return apiResults;
 }
 
-const getEntireCarList = async function(index = 1) {
-  const results = await getCars(index);
-  if (results.entries.length>0) {
-    return results.entries.concat(await getEntireCarList(index+1));
-  } else {
-    return results.entries;
+async function getCarList(that)
+{
+  var firstresult = getCars(1)
+  var entries = null
+  var numpages = 0
+  var resultlist = []
+
+  firstresult.then(resp=> {
+    numpages = resp.pages
+    entries = resp.entries
+   
+  }).then(data=>{ 
+    var res1 = loopCars(numpages)
+    res1.then(res=> { entries=res; that.kjoretoyList=entries})
+  })
+}
+
+async function loopCars(numpages)
+{
+  var resultList = []
+
+  var totalentries = []
+
+  for (i = 2; i <= numpages; i++) {
+    resultList[i] = await getSpecificCarList(i)
+    totalentries = [].concat(totalentries, resultList[i])
+
+    if (i == (numpages)) {
+      return totalentries
+    }
   }
-};
+}
+
+async function getSpecificCarList(index)
+{
+  var result = await getCars(index)
+  return result.entries
+}
+
 
 function convertDate(str)
 {
@@ -139,7 +145,7 @@ function analyzeData(tempdata) {
 
 
 Vue.component('barchart', {
-props: ['chartdata', 'data', 'labels', 'options', 'type', 'title', 'initdata'],
+props: ['chartdata', 'options', 'type', 'title'],
 data: function() {
     return {
         mychart: null,
@@ -160,32 +166,26 @@ methods: {
          }
        
 },
+computed: {
+  chartdatadata: function() {
+
+      return this.chartdata.datasets[0].data
+
+  }
+},
 watch: {
-    initdata: {
-      handler(val, oldval){
-
-        if (val) {
-          this.initchart()
-        }
-        else{
-          this.mychart.update()
-        }
-
-      }
-    },
-    chartdata: {
+    'chartdatadata': {
         immediate: false,
         deep: false,
         handler(val, oldval) {
 
-            if (!this.mychart)
+            if (!this.mychart && val)
             {
                 this.initchart()
-                //this.mychart.update();
             }
             else if (this.mychart && val)
             {
-                //this.mychart.update();
+                this.mychart.update();
             }
 
         }
@@ -200,11 +200,61 @@ template: `<div><canvas :id="id"></canvas></div>`
 
 
 
+var rapportapp2 = Vue.component('rapportapp2', {
+  props: ['kjoretoyList'],
+  data: function() { 
+    return {
+    
+
+    }
+
+  },
+  methods: {
+
+  },
+  watch: {
+
+  },
+  async mounted() {
+
+  },
+  template: `
+  <b-table striped hover :items="kjoretoyList" perPage=10 no-provider-paging></b-table>
+  `  
+});
+
+
+
+var bildeapp = Vue.component('bildeapp', {
+  data: function() {
+    return {
+
+    }
+  },
+  methods: {
+
+  },
+  watch: {
+
+  },
+  computed: {
+    
+
+  },
+  mounted() {
+
+  },
+  template: `<div><img src="/gfx/Polestar_2_Performance_Pack_001.jpg"></div>`
+})
+
+
 
 var rapportapp = new Vue({
+//Vue.component('rapportapp', {
+//var rapportapp = Vue.component('rapportapp', {   
       el: '#rapport',
       //delimiters: ['[[',']]'],
-      data: {
+      data: function() { return {
         urlbase: "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=",
         antallsider: 1,
         antallitems: 0,
@@ -258,16 +308,13 @@ var rapportapp = new Vue({
         },
         kjoretoyList: null,
         documentHeight: null
-      },
+      }},
       methods: {
         processData: function(data)
         {
           var adata = analyzeData(data)
           this.chartData.labels = adata.labels
           this.chartData.datasets[0].data = adata.data
-
-          this.initdata = true
-
         },
         processData2: function(coldata)
         {
@@ -283,18 +330,12 @@ var rapportapp = new Vue({
           }
 
             this.chartData2.labels = labels
-            this.chartData2.datasets[0].data = data
             this.chartData2.datasets[0].backgroundColor = color
-            this.initdata2 = true
-
+            this.chartData2.datasets[0].data = data
         }
       },
       watch: {
-        chartData: function(val, oldval)
-        {
-
-        },
-        kjoretoyList: {
+      kjoretoyList: {
           immediate: false,
           deep: false,
           handler(val, oldval)
@@ -335,6 +376,9 @@ var rapportapp = new Vue({
         }
       },
       computed: {
+        chartdatacomputed: function() {
+          return this.chartdata.datasets[0] ? this.chartdata.datasets[0].data : null
+        },
         chartStyles() {
             return {
                 //height: (this.documentHeight / 2) + 'px',
@@ -346,7 +390,10 @@ var rapportapp = new Vue({
       async mounted() {
              
              this.documentHeight = document.documentElement.scrollHeight
-             this.kjoretoyList=await getEntireCarList();
+
+             //this.kjoretoyList=await getCarList()
+             await getCarList(this)
+             //this.kjoretoyList=await getEntireCarList();
       },
       template: `
       <div class="container-fluid">
@@ -360,15 +407,17 @@ var rapportapp = new Vue({
       <div class="col-sm">
       <ul class="list-group">
       <li class="list-group-item">Registreringstatus: <b>{{this.registrert_status_data}}</b></li>
-      <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a> ( <a href="https://data.norge.no/datasets/a8533876-cca7-4417-90be-b368f7d9542c" target="_blank">Kjøretøyopplysninger</a> )</li>
+      <li class="list-group-item">Kilde: <a href="https://www.difi.no/" target="_blank">difi.no</a> ( <a href="https://data.norge.no/datasets/a8533876-cca7-4417-90be-b368f7d9542c" target="_blank">Kjøretøyopplysninger</a> )
+       (<a href="https://dataut.vegvesen.no/dataset/activity/kjoretoyopplysninger" target="_blank">Status datasett kjøretøyopplysninger</a>)
+      </li>
       </ul>
       </div>
       </div>
 
 
       
-      <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned"></barchart>
-      <barchart :chartdata="chartData" :options="options" :initdata="initdata" title="Antall biler per måned" type="line"></barchart>
+      <barchart :chartdata="chartData" :options="options" title="Antall biler per måned"></barchart>
+      <barchart :chartdata="chartData" :options="options" title="Antall biler per måned" type="line"></barchart>
             <div class="row">
       <div class="col-sm">
       <h4><span class="badge badge-secondary">Fordeling av farger:</span></h4>
@@ -381,11 +430,47 @@ var rapportapp = new Vue({
       </div>
       </div>
       </div>
-      <barchart :chartdata="chartData2" :options="options" :initdata="initdata2" title="Fordeling av farger" type="doughnut"></barchart>
+      <barchart :chartdata="chartData2" :options="options" title="Fordeling av farger" type="doughnut"></barchart>
+      
       </div>`
 
     });
 
+const Bar = {
+  template: `<div>bar</div>`
+};
+
+
+
+/*
+const router = new VueRouter({
+  routes: [
+    {
+      path: "/",
+      component: rapportapp
+    },
+    {
+      path: "/rapport2",
+      component: rapportapp2,
+      props: {kjoretoyList: rapportapp.kjoretoyList}
+    },
+    {
+      path: "/bilde",
+      component: bildeapp
+    }
+  ]
+});
+*/
+
+const app = new Vue({
+  //router,
+  el: "#app",
+  mounted() {
+    console.log("APP MOUNTED")             
+
+      }
+  
+});
 
 
     Vue.config.devtools = true;
