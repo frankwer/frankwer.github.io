@@ -21,25 +21,31 @@
   <body>
 
   <div id="app">
-    <div id="rapport"></div>
-<!--
+
   <b-breadcrumb>
  <b-breadcrumb-item><router-link to="/">Graf</router-link></b-breadcrumb-item>
  <b-breadcrumb-item active><router-link to="/rapport2">Liste</router-link></b-breadcrumb-item>
-  <b-breadcrumb-item active><router-link to="/bilde">Bilde</router-link></b-breadcrumb-item>
  </b-breadcrumb>
-
+</nav>
      <div>
      <keep-alive>
         <router-view></router-view>
      </keep-alive>
       </div>
--->
+
+  </div>
+
+
+  <div id="rapport">
+
   </div>
 
   </body>
 
-<script type="text/javascript">
+  <script type="text/javascript">
+  
+
+
 
 function randomHex(length) {
     var random_string = '';
@@ -75,45 +81,14 @@ const getCars = async function(pageNo = 1) {
   return apiResults;
 }
 
-async function getCarList(that)
-{
-  var firstresult = getCars(1)
-  var entries = null
-  var numpages = 0
-  var resultlist = []
-
-  firstresult.then(resp=> {
-    numpages = resp.pages
-    entries = resp.entries
-   
-  }).then(data=>{ 
-    var res1 = loopCars(numpages)
-    res1.then(res=> { entries=res; that.kjoretoyList=entries})
-  })
-}
-
-async function loopCars(numpages)
-{
-  var resultList = []
-
-  var totalentries = []
-
-  for (i = 2; i <= numpages; i++) {
-    resultList[i] = await getSpecificCarList(i)
-    totalentries = [].concat(totalentries, resultList[i])
-
-    if (i == (numpages)) {
-      return totalentries
-    }
+const getEntireCarList = async function(index = 1) {
+  const results = await getCars(index);
+  if (results.entries.length>0) {
+    return results.entries.concat(await getEntireCarList(index+1));
+  } else {
+    return results.entries;
   }
-}
-
-async function getSpecificCarList(index)
-{
-  var result = await getCars(index)
-  return result.entries
-}
-
+};
 
 function convertDate(str)
 {
@@ -171,6 +146,8 @@ computed: {
 
       return this.chartdata.datasets[0].data
 
+
+    //return this.chartdata.datasets[0].data
   }
 },
 watch: {
@@ -178,6 +155,7 @@ watch: {
         immediate: false,
         deep: false,
         handler(val, oldval) {
+          console.log("DATASET")
 
             if (!this.mychart && val)
             {
@@ -200,13 +178,10 @@ template: `<div><canvas :id="id"></canvas></div>`
 
 
 
-var rapportapp2 = Vue.component('rapportapp2', {
-  props: ['kjoretoyList'],
-  data: function() { 
-    return {
+var rapport2 = Vue.component('rapportapp2', {
+  data: function() { return {
     
-
-    }
+  }
 
   },
   methods: {
@@ -225,41 +200,17 @@ var rapportapp2 = Vue.component('rapportapp2', {
 
 
 
-var bildeapp = Vue.component('bildeapp', {
-  data: function() {
-    return {
-
-    }
-  },
-  methods: {
-
-  },
-  watch: {
-
-  },
-  computed: {
-    
-
-  },
-  mounted() {
-
-  },
-  template: `<div><img src="/gfx/Polestar_2_Performance_Pack_001.jpg"></div>`
-})
-
-
-
-var rapportapp = new Vue({
+//var rapportapp = new Vue({
 //Vue.component('rapportapp', {
-//var rapportapp = Vue.component('rapportapp', {   
-      el: '#rapport',
+ var rapportapp = Vue.component('rapportapp', {   
+     // el: '#rapport',
       //delimiters: ['[[',']]'],
-      //data: function() { return {
-      data: {  
+      data: function() { return {
         urlbase: "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=",
         antallsider: 1,
         antallitems: 0,
-        loaded: true,
+        initdata: false,
+        initdata2: false,
         chartData: {
           labels: [],
           datasets: [
@@ -308,14 +259,15 @@ var rapportapp = new Vue({
         },
         kjoretoyList: null,
         documentHeight: null
-      },
-      //}},
+      }},
       methods: {
         processData: function(data)
         {
           var adata = analyzeData(data)
           this.chartData.labels = adata.labels
           this.chartData.datasets[0].data = adata.data
+
+
         },
         processData2: function(coldata)
         {
@@ -333,19 +285,20 @@ var rapportapp = new Vue({
             this.chartData2.labels = labels
             this.chartData2.datasets[0].backgroundColor = color
             this.chartData2.datasets[0].data = data
+
+
+
         }
       },
       watch: {
       kjoretoyList: {
           immediate: false,
-          deep: true,
+          deep: false,
           handler(val, oldval)
           {
-            //console.log(val)
             this.antallitems = val.length
             Object.entries(val).forEach(item => {
                   //this.registrert.push(item[1].tekn_reg_aar.slice(0,6))
-                  //console.log(item)
                   this.registrert.push(item[1].tekn_reg_aar)
                   this.vinnummer.push(item[1].tekn_unr)
                   this.farge.push(item[1].tekn_farge)
@@ -358,9 +311,6 @@ var rapportapp = new Vue({
             this.fargedata = countOccurrences(this.farge)
             this.registrert_status_data = countOccurrences(this.registrert_status)
             //this.processData2(this.fargedata)
-            this.loaded = false
-
-            //this.$forceUpdate();
           }
         },
         fargedata: {
@@ -382,10 +332,6 @@ var rapportapp = new Vue({
         }
       },
       computed: {
-        vinlength: function() {
-          this.antallitems = this.vinnummer.length
-          return this.vinnummer.length
-        },
         chartdatacomputed: function() {
           return this.chartdata.datasets[0] ? this.chartdata.datasets[0].data : null
         },
@@ -397,36 +343,18 @@ var rapportapp = new Vue({
                 }
         }
       },
-      async beforeMount() {
-        var that = this;
-        try {
-          await getCarList(this)
-        } catch(err) {
-          throw new Error(`Something failed`);
-        } finally {
-          //that.loaded = false
-          //console.log(`All Tasks is Done`);
-        }
-      },
       async mounted() {
+             
              this.documentHeight = document.documentElement.scrollHeight
-
-             //this.kjoretoyList=await getCarList()
-             //await getCarList(this)
-             //this.kjoretoyList=await getEntireCarList();
+             this.kjoretoyList=await getEntireCarList();
       },
       template: `
       <div class="container-fluid">
-      <template v-if="loaded">
-        <b-spinner label="Spinning"></b-spinner>  
-      </template>
-      <template v-else>
       <div class="row">
-      
       <div class="col-sm">
       <ul class="list-group">
       <li class="list-group-item">Antall registrerte Polestar 2: <b>{{antallitems}}</b></li>
-      <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}} {{vinlength}}</b></li>
+      <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}}</b></li>
       </ul>
       </div>
       <div class="col-sm">
@@ -438,7 +366,8 @@ var rapportapp = new Vue({
       </ul>
       </div>
       </div>
-    </template>
+
+
       
       <barchart :chartdata="chartData" :options="options" title="Antall biler per måned"></barchart>
       <barchart :chartdata="chartData" :options="options" title="Antall biler per måned" type="line"></barchart>
@@ -465,8 +394,6 @@ const Bar = {
 };
 
 
-
-/*
 const router = new VueRouter({
   routes: [
     {
@@ -475,17 +402,15 @@ const router = new VueRouter({
     },
     {
       path: "/rapport2",
-      component: rapportapp2,
-      props: {kjoretoyList: rapportapp.kjoretoyList}
-    },
-    {
-      path: "/bilde",
-      component: bildeapp
+      component: rapport2
     }
   ]
 });
-*/
 
+const app = new Vue({
+  router,
+  el: "#app"
+});
 
 
     Vue.config.devtools = true;

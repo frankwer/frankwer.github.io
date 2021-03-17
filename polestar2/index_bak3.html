@@ -254,12 +254,12 @@ var rapportapp = new Vue({
 //var rapportapp = Vue.component('rapportapp', {   
       el: '#rapport',
       //delimiters: ['[[',']]'],
-      //data: function() { return {
-      data: {  
+      data: function() { return {
         urlbase: "https://hotell.difi.no/api/json/vegvesen/kjoretoy?query=",
         antallsider: 1,
         antallitems: 0,
-        loaded: true,
+        initdata: false,
+        initdata2: false,
         chartData: {
           labels: [],
           datasets: [
@@ -308,8 +308,7 @@ var rapportapp = new Vue({
         },
         kjoretoyList: null,
         documentHeight: null
-      },
-      //}},
+      }},
       methods: {
         processData: function(data)
         {
@@ -338,14 +337,12 @@ var rapportapp = new Vue({
       watch: {
       kjoretoyList: {
           immediate: false,
-          deep: true,
+          deep: false,
           handler(val, oldval)
           {
-            //console.log(val)
             this.antallitems = val.length
             Object.entries(val).forEach(item => {
                   //this.registrert.push(item[1].tekn_reg_aar.slice(0,6))
-                  //console.log(item)
                   this.registrert.push(item[1].tekn_reg_aar)
                   this.vinnummer.push(item[1].tekn_unr)
                   this.farge.push(item[1].tekn_farge)
@@ -358,9 +355,6 @@ var rapportapp = new Vue({
             this.fargedata = countOccurrences(this.farge)
             this.registrert_status_data = countOccurrences(this.registrert_status)
             //this.processData2(this.fargedata)
-            this.loaded = false
-
-            //this.$forceUpdate();
           }
         },
         fargedata: {
@@ -382,10 +376,6 @@ var rapportapp = new Vue({
         }
       },
       computed: {
-        vinlength: function() {
-          this.antallitems = this.vinnummer.length
-          return this.vinnummer.length
-        },
         chartdatacomputed: function() {
           return this.chartdata.datasets[0] ? this.chartdata.datasets[0].data : null
         },
@@ -397,36 +387,21 @@ var rapportapp = new Vue({
                 }
         }
       },
-      async beforeMount() {
-        var that = this;
-        try {
-          await getCarList(this)
-        } catch(err) {
-          throw new Error(`Something failed`);
-        } finally {
-          //that.loaded = false
-          //console.log(`All Tasks is Done`);
-        }
-      },
       async mounted() {
+             
              this.documentHeight = document.documentElement.scrollHeight
 
              //this.kjoretoyList=await getCarList()
-             //await getCarList(this)
+             await getCarList(this)
              //this.kjoretoyList=await getEntireCarList();
       },
       template: `
       <div class="container-fluid">
-      <template v-if="loaded">
-        <b-spinner label="Spinning"></b-spinner>  
-      </template>
-      <template v-else>
       <div class="row">
-      
       <div class="col-sm">
       <ul class="list-group">
       <li class="list-group-item">Antall registrerte Polestar 2: <b>{{antallitems}}</b></li>
-      <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}} {{vinlength}}</b></li>
+      <li class="list-group-item">Høyeste VIN-nummer: <b>{{vinnummer[vinnummer.length-1]}}</b></li>
       </ul>
       </div>
       <div class="col-sm">
@@ -438,7 +413,8 @@ var rapportapp = new Vue({
       </ul>
       </div>
       </div>
-    </template>
+
+
       
       <barchart :chartdata="chartData" :options="options" title="Antall biler per måned"></barchart>
       <barchart :chartdata="chartData" :options="options" title="Antall biler per måned" type="line"></barchart>
@@ -486,6 +462,15 @@ const router = new VueRouter({
 });
 */
 
+const app = new Vue({
+  //router,
+  el: "#app",
+  mounted() {
+    console.log("APP MOUNTED")             
+
+      }
+  
+});
 
 
     Vue.config.devtools = true;
